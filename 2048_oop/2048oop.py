@@ -144,13 +144,12 @@ class Number_management:
 
 
     def choose_random_coordinates(self, size):
-        coords = Coord_pair(random.randint(0, size), random.randint(0, size))
-        return coords
+        return Coord_pair(random.randint(0, size), random.randint(0, size))
 
 
 
     def is_position_free(self, matrix, coords):
-        return matrix[coords.x_coor][coords.y_coor] == " "
+        return matrix[coords.x_coor][coords.y_coor].value == " "
 
 
 
@@ -158,7 +157,7 @@ class Number_management:
         num_of_valid_spaces = 0
         for row in matrix:
             for elem in row:
-                if elem == " " and num_of_valid_spaces <= 2:
+                if elem.value == " " and num_of_valid_spaces <= 2:
                     num_of_valid_spaces += 1
         if return_num_of_empty_spaces:
             return num_of_valid_spaces == 0, num_of_valid_spaces
