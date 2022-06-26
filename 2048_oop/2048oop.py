@@ -73,6 +73,7 @@ class Board:
     def __init__(self, size):
         self.size = size
         self.matrix = []
+        self.num_of_empty_cells = 0
         self.build_board(size)
 
     
@@ -84,11 +85,40 @@ class Board:
                 cell = Cell(i, j, " ")
                 row.append(cell)
             self.matrix.append(row)
+        self.num_of_empty_cells = size * size
     
+
+    def choose_next_number(self):
+        wheighted_number_list = [2, 2, 2, 2, 4, 2, 2, 2, 2, 4]
+        num_index = random.randint(0, 9)
+        return wheighted_number_list[num_index]
+
+
+
+    def choose_random_coordinates(self, size):
+        return Coord_pair(random.randint(0, size), random.randint(0, size))
+
+
+
+    def is_position_free(self, matrix, coords):
+        return matrix[coords.x_coor][coords.y_coor].value == " "
+
+
+
+
+    def add_new_twos_and_fours(self, ):
+        if self.num_of_empty_cells > 0:
+            for i in range(1, self.num_of_empty_cells):
+                coords = self.choose_random_coordinates(len(self.matrix)-1)
+                while not self.is_position_free(self.matrix, coords):
+                    coords = self.choose_random_coordinates(len(self.matrix)-1)
+                return coords
+
 
 
     def update_with_new_num(self, coords, value):
         self.matrix[coords.x_coor][coords.y_coor].value = value
+        self.num_of_empty_cells -= 1
 
 
 
@@ -128,67 +158,48 @@ class Board:
 
 
 
-    def print_board(self):
-        for row in self.matrix:
+
+class UI:
+    def __init__(self):
+        self.valid_inputs = ["W", "A", "S", "D", "Q"]
+    
+    def get_control_input(self):
+        usr_input = input()
+        while usr_input.upper() not in self.valid_inputs:
+            usr_input = input()
+        return usr_input
+
+    def print_board(self, matrix):
+        for row in matrix:
             for elem in row:
                 print(f"[{elem.value : ^4}]", end="")
             print()
-
-
-class Number_management:
-    def choose_next_number(self):
-        wheighted_number_list = [2, 2, 2, 2, 4, 2, 2, 2, 2, 4]
-        num_index = random.randint(0, 9)
-        return wheighted_number_list[num_index]
-
-
-
-    def choose_random_coordinates(self, size):
-        return Coord_pair(random.randint(0, size), random.randint(0, size))
-
-
-
-    def is_position_free(self, matrix, coords):
-        return matrix[coords.x_coor][coords.y_coor].value == " "
-
-
-
-    def is_board_full(self, matrix, return_num_of_empty_spaces=False):
-        num_of_valid_spaces = 0
-        for row in matrix:
-            for elem in row:
-                if elem.value == " " and num_of_valid_spaces <= 2:
-                    num_of_valid_spaces += 1
-        if return_num_of_empty_spaces:
-            return num_of_valid_spaces == 0, num_of_valid_spaces
-        else:
-            return num_of_valid_spaces == 0
-
-
-
-    def add_new_twos_and_fours(self, matrix):
-        is_full, num_of_valid_spaces = self.is_board_full(matrix, True)
-        if not is_full:
-            for i in range(1, num_of_valid_spaces):
-                coords = self.choose_random_coordinates(len(matrix)-1)
-                while not self.is_position_free(matrix, coords):
-                    coords = self.choose_random_coordinates(len(matrix)-1)
-                return coords
 
 
 
 class Engine:
     def __init__(self):
         self.size = int(input("Please specify the size of the game area:\n"))
+        self.gameui = UI()
         self.game_board = Board(self.size)
-        self.num_management = Number_management()
-        self.game_board.update_with_new_num(self.num_management.add_new_twos_and_fours(self.game_board.matrix),
-                                            self.num_management.choose_next_number())
+        self.game_board.update_with_new_num(self.game_board.add_new_twos_and_fours(),
+                                            self.game_board.choose_next_number())
 
+    def one_cell_move(self, usr_input):
+        if usr_input == "W":
+            self.game_board.move_up()
+        if usr_input == "A":
+            self.game_board.move_left()
+        if usr_input == "S":
+            self.game_board.move_down()
+        if usr_input == "D":
+            self.game_board.move_right()
 
 
     def runtime(self):
-        self.game_board.print_board()
+        self.gameui.print_board(self.game_board.matrix)
+        self.one_cell_move(self.gameui.get_control_input())
+        self.gameui.print_board(self.game_board.matrix)
 
 
 
