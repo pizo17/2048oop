@@ -1,5 +1,6 @@
 import random
-
+import os
+import time
 
 
 class Foreground_Colors:
@@ -67,6 +68,9 @@ class Cell:
     def update_color(self):
         pass
 
+    
+    def add_value(self, value):
+        self.value += value
 
 
 class Board:
@@ -106,19 +110,28 @@ class Board:
 
 
 
-    def add_new_twos_and_fours(self, ):
+    def add_coord_pair(self):
         if self.num_of_empty_cells > 0:
-            for i in range(1, self.num_of_empty_cells):
+            coords = self.choose_random_coordinates(len(self.matrix)-1)
+            while not self.is_position_free(self.matrix, coords):
                 coords = self.choose_random_coordinates(len(self.matrix)-1)
-                while not self.is_position_free(self.matrix, coords):
-                    coords = self.choose_random_coordinates(len(self.matrix)-1)
-                return coords
+            return coords
+
+    def check_empty_cells(self):
+        num_of_empty = 0
+        if self.num_of_empty_cells >= 2:
+            return 2
+        else:
+            return self.num_of_empty_cells
 
 
-
-    def update_with_new_num(self, coords, value):
-        self.matrix[coords.x_coor][coords.y_coor].value = value
-        self.num_of_empty_cells -= 1
+    def update_with_new_nums(self):
+        num_of_empty = self.check_empty_cells()
+        for i in range(num_of_empty):
+            coords = self.add_coord_pair()
+            value = self.choose_next_number()
+            self.matrix[coords.x_coor][coords.y_coor].value = value
+            self.num_of_empty_cells -= 1
 
 
 
@@ -130,32 +143,76 @@ class Board:
 
 
 
+    def add_logic(self, excluded_indices, i, j, i_offset=0, j_offset=0):
+        examined_index = j if i_offset != 0 else i
+        if examined_index not in excluded_indices:
+            if self.matrix[i][j].value == " ":
+                return j if i_offset != 0 else i
+            elif self.matrix[i][j].value == self.matrix[i+i_offset][j+j_offset].value:
+                self.matrix[i+i_offset][j+j_offset].add_value(self.matrix[i][j].value)
+                self.matrix[i][j].update_value(" ")
+                self.num_of_empty_cells += 1
+                return j if i_offset != 0 else i
+
+
+
     def move_up(self):
         for i in range(1, len(self.matrix)):
             for j in range(len(self.matrix[i])):
-                self.move_logic(self.matrix, i, j, -1)
+                self.move_logic(i, j, -1)
 
 
 
     def move_down(self):
         for i in reversed(range(len(self.matrix)-1)):
             for j in range(len(self.matrix[i])):
-                self.move_logic(self.matrix, i, j, 1)
+                self.move_logic(i, j, 1)
 
 
 
     def move_left(self):
         for i in range(len(self.matrix)):
             for j in range(1, len(self.matrix[i])):
-                self.move_logic(self.matrix, i, j, 0, -1)
+                self.move_logic(i, j, 0, -1)
                 
 
 
     def move_right(self):
         for i in range(len(self.matrix)):
             for j in reversed(range(len(self.matrix[i])-1)):
-                self.move_logic(self.matrix, i, j, 0, 1)
+                self.move_logic(i, j, 0, 1)
 
+
+
+    def add_up(self):
+        excluded_indices = set()
+        for i in range(len(self.matrix)):
+            for j in range(len(self.matrix[i])):
+                excluded_indices.add(self.add_logic(excluded_indices, i, j, -1))
+            
+
+
+    def add_down(self):
+        excluded_indices = set()
+        for i in reversed(range(len(self.matrix)-1)):
+            for j in range(len(self.matrix[i])):
+                excluded_indices.add(self.add_logic(excluded_indices, i, j, 1))
+                
+
+
+    def add_left(self):
+        excluded_indices = set()
+        for i in range(len(self.matrix)):   
+            for j in range(1, len(self.matrix[i])):
+                excluded_indices.add(self.add_logic(excluded_indices, i, j, 0, -1))
+
+
+
+    def add_right(self):
+        excluded_indices = set()
+        for i in range(len(self.matrix)):
+            for j in reversed(range(len(self.matrix[i])-1)):
+                excluded_indices.add(self.add_logic(excluded_indices, i, j, 0, 1))
 
 
 
@@ -164,9 +221,9 @@ class UI:
         self.valid_inputs = ["W", "A", "S", "D", "Q"]
     
     def get_control_input(self):
-        usr_input = input()
-        while usr_input.upper() not in self.valid_inputs:
-            usr_input = input()
+        usr_input = input().upper()
+        while usr_input not in self.valid_inputs:
+            usr_input = input().upper()
         return usr_input
 
     def print_board(self, matrix):
@@ -174,6 +231,7 @@ class UI:
             for elem in row:
                 print(f"[{elem.value : ^4}]", end="")
             print()
+        print("Use W, A, S, D keys to play, press Q to quit\n")
 
 
 
@@ -182,24 +240,49 @@ class Engine:
         self.size = int(input("Please specify the size of the game area:\n"))
         self.gameui = UI()
         self.game_board = Board(self.size)
-        self.game_board.update_with_new_num(self.game_board.add_new_twos_and_fours(),
-                                            self.game_board.choose_next_number())
+        self.game_board.update_with_new_nums()
 
-    def one_cell_move(self, usr_input):
+    def move_control(self, usr_input):
         if usr_input == "W":
-            self.game_board.move_up()
+                self.game_board.move_up()
         if usr_input == "A":
-            self.game_board.move_left()
+                self.game_board.move_left()
         if usr_input == "S":
-            self.game_board.move_down()
+                self.game_board.move_down()
         if usr_input == "D":
-            self.game_board.move_right()
+                self.game_board.move_right()
+
+    def add_control(self, usr_input):
+        if usr_input == "W":
+            self.game_board.add_up()
+        if usr_input == "A":
+            self.game_board.add_left()
+        if usr_input == "S":
+            self.game_board.add_down()
+        if usr_input == "D":
+            self.game_board.add_right()
 
 
     def runtime(self):
+        quit = False
+        os.system('cls')
         self.gameui.print_board(self.game_board.matrix)
-        self.one_cell_move(self.gameui.get_control_input())
-        self.gameui.print_board(self.game_board.matrix)
+        while not quit:
+            self.game_board.update_with_new_nums()
+            usr_input = self.gameui.get_control_input()
+            if usr_input != "Q":
+                os.system('cls')
+                for i in range(self.game_board.size):
+                    os.system('cls')
+                    self.move_control(usr_input)
+                    
+                    self.gameui.print_board(self.game_board.matrix)
+                    time.sleep(0.5)
+                self.add_control(usr_input)
+                time.sleep(0.5)
+                
+            else:
+                quit = True
 
 
 
