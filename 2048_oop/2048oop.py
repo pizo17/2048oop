@@ -1,6 +1,8 @@
+from operator import truediv
 import random
 import os
 import time
+from tkinter.tix import Tree
 
 
 class Foreground_Colors:
@@ -78,6 +80,7 @@ class Board:
         self.size = size
         self.matrix = []
         self.num_of_empty_cells = 0
+        self.add_done_in_cycle =False
         self.build_board(size)
 
     
@@ -118,7 +121,6 @@ class Board:
             return coords
 
     def check_empty_cells(self):
-        num_of_empty = 0
         if self.num_of_empty_cells >= 2:
             return 2
         else:
@@ -132,6 +134,33 @@ class Board:
             value = self.choose_next_number()
             self.matrix[coords.x_coor][coords.y_coor].value = value
             self.num_of_empty_cells -= 1
+
+
+
+    def cell_eq_check(self, i, j):
+        if i > 0:
+            if self.matrix[i][j] == self.matrix[i-1][j]:
+                return True
+        if j > 0:
+            if self.matrix[i][j] == self.matrix[i][j-1]:
+                return True
+        if i < self.size-1:
+            if self.matrix[i][j] == self.matrix[i+1][j]:
+                return True
+        if j < self.size-1:
+            if self.matrix[i][j] == self.matrix[i][j+1]:
+                return True
+        return False
+
+
+    def is_game_over(self):
+        if self.num_of_empty_cells == 0:
+            for i in range(1, self.size, 2):
+                for j in range(1, self.size, 2):
+                    if self.cell_eq_check(i, j):
+                        return False
+            return True
+        return False
 
 
 
@@ -152,6 +181,7 @@ class Board:
                 self.matrix[i+i_offset][j+j_offset].add_value(self.matrix[i][j].value)
                 self.matrix[i][j].update_value(" ")
                 self.num_of_empty_cells += 1
+                self.add_done_in_cycle = True
                 return j if i_offset != 0 else i
 
 
@@ -226,19 +256,34 @@ class UI:
             usr_input = input().upper()
         return usr_input
 
+    def get_size_input(self):
+        os.system('cls')
+        size = input("Please specify the size of the game area:\n")
+        while not size.isnumeric():
+            os.system('cls')
+            size = input("The entered value is invalid.\nPlease specify the size of the game area:\n")
+        return int(size)
+
     def print_board(self, matrix):
+        os.system('cls')
         for row in matrix:
             for elem in row:
                 print(f"[{elem.value : ^4}]", end="")
             print()
         print("Use W, A, S, D keys to play, press Q to quit\n")
+        time.sleep(0.5)
+
+    def print_message(self, message_id):
+        if message_id == 1:
+            print("You lost!")
+
 
 
 
 class Engine:
     def __init__(self):
-        self.size = int(input("Please specify the size of the game area:\n"))
         self.gameui = UI()
+        self.size = self.gameui.get_size_input()
         self.game_board = Board(self.size)
         self.game_board.update_with_new_nums()
 
@@ -265,24 +310,27 @@ class Engine:
 
     def runtime(self):
         quit = False
-        os.system('cls')
         self.gameui.print_board(self.game_board.matrix)
         while not quit:
-            self.game_board.update_with_new_nums()
+            self.game_board.add_done_in_cycle = False
             usr_input = self.gameui.get_control_input()
             if usr_input != "Q":
-                os.system('cls')
-                for i in range(self.game_board.size):
-                    os.system('cls')
-                    self.move_control(usr_input)
-                    
-                    self.gameui.print_board(self.game_board.matrix)
-                    time.sleep(0.5)
                 self.add_control(usr_input)
-                time.sleep(0.5)
-                
+                for i in range(self.game_board.size):
+                    self.move_control(usr_input)
+                    self.gameui.print_board(self.game_board.matrix)
+                self.game_board.update_with_new_nums()
+                self.gameui.print_board(self.game_board.matrix)
+                if not self.game_board.add_done_in_cycle:
+                    self.add_control(usr_input)
+                    self.move_control(usr_input)
+                if self.game_board.is_game_over():
+                    self.gameui.print_message(1)
+                    quit = True
             else:
                 quit = True
+
+
 
 
 
