@@ -1,8 +1,7 @@
-from operator import truediv
+import math
 import random
 import os
 import time
-from tkinter.tix import Tree
 
 
 class Foreground_Colors:
@@ -32,7 +31,7 @@ class Background_Colors:
         self.green = "\u001b[42m"
         self.yellow = "\u001b[43m"
         self.blue = "\u001b[44m"
-        self.magenta = "\u001b[44m"
+        self.magenta = "\u001b[45m"
         self.cyan = "\u001b[46m"
         self.white = "\u001b[47m"
         self.bright_black = "\u001b[40;1m"
@@ -44,6 +43,43 @@ class Background_Colors:
         self.bright_cyan = "\u001b[46;1m"
         self.bright_white = "\u001b[46;1m"
         self.reset = "\u001b[47;1m"
+
+
+
+class Color_Manager:
+    def __init__(self):
+        self.fg_col = Foreground_Colors()
+        self.bg_col = Background_Colors()
+        self.exponent_codes = {2: 1, 
+                                4: 2, 
+                                8: 3, 
+                                16: 4, 
+                                32: 5, 
+                                64: 6, 
+                                128: 7, 
+                                256: 8}
+        self.col_codes = {1: self.bg_col.white + self.fg_col.black, 
+                            2: self.bg_col.yellow + self.fg_col.black, 
+                            3: self.bg_col.red + self.fg_col.white, 
+                            4: self.bg_col.green + self.fg_col.black,
+                            5: self.bg_col.cyan + self.fg_col.black, 
+                            6: self.bg_col.blue + self.fg_col.white,
+                            7: self.bg_col.magenta + self.fg_col.white, 
+                            8: self.bg_col.black + self.fg_col.white} 
+
+
+
+    def choose_color(self, number):
+        color = self.bg_col.black
+        if number in self.exponent_codes:
+            color = self.col_codes.get(self.exponent_codes.get(number))
+        else:
+            power = math.log(number, 2)
+            while not power-8 in self.col_codes:
+                power = power-8
+            color = self.col_codes.get(power-8)
+        return color
+
 
 
 
@@ -137,18 +173,32 @@ class Board:
 
 
 
+    def check_eq_side_to_side(self, i, j):
+        return (j > 0 and self.matrix[i-1][j].value == self.matrix[i-1][j-1].value or 
+                j < self.size-1 and self.matrix[i-1][j].value == self.matrix[i-1][j+1].value)
+
+
+    def check_eq_up_down(self, i, j):
+        return (i > 0 and self.matrix[i][j-1].value == self.matrix[i][j-1].value or
+                i < self.size-1 and self.matrix[i][j-1].value == self.matrix[i-1][j-1].value)
+
+
     def cell_eq_check(self, i, j):
         if i > 0:
-            if self.matrix[i][j] == self.matrix[i-1][j]:
+            if (self.matrix[i][j].value == self.matrix[i-1][j].value or 
+                self.check_eq_side_to_side(i, j)):
                 return True
         if j > 0:
-            if self.matrix[i][j] == self.matrix[i][j-1]:
+            if (self.matrix[i][j].value == self.matrix[i][j-1].value or 
+                self.check_eq_up_down(i, j)):
                 return True
         if i < self.size-1:
-            if self.matrix[i][j] == self.matrix[i+1][j]:
+            if (self.matrix[i][j].value == self.matrix[i+1][j].value or
+                self.check_eq_side_to_side(i, j)):
                 return True
         if j < self.size-1:
-            if self.matrix[i][j] == self.matrix[i][j+1]:
+            if (self.matrix[i][j].value == self.matrix[i][j+1].value or
+                self.check_eq_up_down(i, j)):
                 return True
         return False
 
@@ -162,6 +212,15 @@ class Board:
             return True
         return False
 
+
+
+    def is_game_won(self):
+        game_won = False
+        for i in range(self.size):
+            for j in range(self.size):
+                if self.matrix[i][j].value == 2048:
+                    game_won = True
+        return game_won
 
 
 
@@ -249,7 +308,10 @@ class Board:
 class UI:
     def __init__(self):
         self.valid_inputs = ["W", "A", "S", "D", "Q"]
-    
+        self.col_manager = Color_Manager()
+
+
+
     def get_control_input(self):
         usr_input = input().upper()
         while usr_input not in self.valid_inputs:
@@ -268,14 +330,19 @@ class UI:
         os.system('cls')
         for row in matrix:
             for elem in row:
-                print(f"[{elem.value : ^4}]", end="")
+                color = self.col_manager.bg_col.white + self.col_manager.fg_col.black
+                if not elem.value == " ":
+                    color = self.col_manager.choose_color(elem.value)
+                print(f"{color}[{elem.value : ^4}]", end="")
             print()
-        print("Use W, A, S, D keys to play, press Q to quit\n")
+        print(f"{self.col_manager.bg_col.black}{self.col_manager.fg_col.white}Use W, A, S, D keys to play, press Q to quit\n")
         time.sleep(0.5)
 
     def print_message(self, message_id):
         if message_id == 1:
             print("You lost!")
+        if message_id == 2:
+            print("You win, but you can keep playing!")
 
 
 
@@ -327,6 +394,9 @@ class Engine:
                 if self.game_board.is_game_over():
                     self.gameui.print_message(1)
                     quit = True
+                if self.game_board.is_game_won():
+                    self.gameui.print_message(2)
+
             else:
                 quit = True
 
