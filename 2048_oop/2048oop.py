@@ -75,9 +75,7 @@ class Color_Manager:
             color = self.col_codes.get(self.exponent_codes.get(number))
         else:
             power = math.log(number, 2)
-            while not power-8 in self.col_codes:
-                power = power-8
-            color = self.col_codes.get(power-8)
+            color = self.col_codes.get(power % 8)
         return color
 
 
