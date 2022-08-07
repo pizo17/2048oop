@@ -70,14 +70,8 @@ class Color_Manager:
 
 
     def choose_color(self, number):
-        color = self.bg_col.black
-        if number in self.exponent_codes:
-            color = self.col_codes.get(self.exponent_codes.get(number))
-        else:
-            power = math.log(number, 2)
-            color = self.col_codes.get(power % 8)
-        return color
-
+        col_code_val = math.log(number, 2) % 8
+        return self.col_codes.get(col_code_val if not col_code_val == 0 else 8) 
 
 
 
@@ -131,6 +125,7 @@ class Board:
 
     def choose_next_number(self):
         wheighted_number_list = [2, 2, 2, 2, 4, 2, 2, 2, 2, 4]
+        #wheighted_number_list = [128,128,128,128,128,128,128,128,128,128,]
         num_index = random.randint(0, 9)
         return wheighted_number_list[num_index]
 
